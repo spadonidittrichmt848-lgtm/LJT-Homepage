@@ -1,15 +1,20 @@
 name: Jekyll build
 
 on:
+  push:
+    branches: [master]
+  workflow_dispatch:
   # Run after bad-pr check
   workflow_run:
     workflows: ["Cleanup bad PR"]
     branches: [main]
     types:
       - completed
-      
+
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
 concurrency:
   group: jekyll-build-${{ github.ref }}
@@ -32,3 +37,16 @@ jobs:
         run: bundle exec jekyll build --strict_front_matter
         env:
           JEKYLL_ENV: production
+
+      - name: Configure GitHub Pages
+        if: github.ref == 'refs/heads/master'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/${{ github.repository }}/pages" >/dev/null 2>&1; then
+            echo "GitHub Pages is already configured."
+          else
+            gh api --method POST "repos/${{ github.repository }}/pages" \
+              -f "source[branch]=master" \
+              -f "source[path]=/"
+          fi
