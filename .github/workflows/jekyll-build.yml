@@ -13,8 +13,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: jekyll-build-${{ github.ref }}
@@ -38,15 +36,18 @@ jobs:
         env:
           JEKYLL_ENV: production
 
-      - name: Configure GitHub Pages
-        if: github.ref == 'refs/heads/master'
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Verify homepage and publications
         run: |
-          if gh api "repos/${{ github.repository }}/pages" >/dev/null 2>&1; then
-            echo "GitHub Pages is already configured."
-          else
-            gh api --method POST "repos/${{ github.repository }}/pages" \
-              -f "source[branch]=master" \
-              -f "source[path]=/"
+          test -f _site/index.html
+          test -f _site/publications/index.html
+          grep -q 'SynLogic: Synthesizing Verifiable Reasoning Data at Scale for Learning Logical Reasoning and Beyond' _site/index.html
+          grep -q 'On the Perception Bottleneck of VLMs for Chart Understanding' _site/index.html
+          grep -q 'On the Universal Truthfulness Hyperplane Inside LLMs' _site/index.html
+          grep -q 'In-Context Sharpness as Alerts: An Inner Representation Perspective for Hallucination Mitigation' _site/index.html
+          grep -q 'C-Eval: A Multi-Level Multi-Discipline Chinese Evaluation Suite for Foundation Models' _site/index.html
+          grep -q 'Composing Parameter-Efficient Modules with Arithmetic Operations' _site/index.html
+          test "$(grep -o 'class="archive__item-title"' _site/publications/index.html | wc -l)" -eq 6
+          if grep -Eq 'Your Name|Red Brick University|Paper Title Number|GitHub University' _site/index.html _site/publications/index.html; then
+            echo "Unreplaced template content found."
+            exit 1
           fi
